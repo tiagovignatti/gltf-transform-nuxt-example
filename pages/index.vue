@@ -7,20 +7,20 @@
       </h1>
       <div class="links">
         <a
-          href="https://nuxtjs.org/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="button--green"
-        >
-          Documentation
-        </a>
-        <a
-          href="https://github.com/nuxt/nuxt.js"
+          @click="readFile"
           target="_blank"
           rel="noopener noreferrer"
           class="button--grey"
         >
-          GitHub
+          Read glb draco'ed file
+        </a>
+        <a
+          @click="doSomeStuff"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="button--green"
+        >
+          Do some stuff
         </a>
       </div>
     </div>
