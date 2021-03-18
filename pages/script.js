@@ -5,11 +5,16 @@ import { DracoMeshCompression } from '@gltf-transform/extensions';
 // Global Draco decoder.
 let decoderModule = {};
 let dracoDecoderType = {};
+let encoderModule = {};
+let dracoEncoderType = {};
 
 // It is recommended to always pull your Draco JavaScript and WASM decoders
 // from this URL. Users will benefit from having the Draco decoder in cache
 // as more sites start using the static URL.
 let decoderPath = 'https://www.gstatic.com/draco/versioned/decoders/1.4.1/';
+// TODO(vignatti): I've failed to find a service that currently is hosting the
+// encoder stuff.
+let encoderPath = './';
 
 // This function loads a JavaScript file and adds it to the page. "path" is
 // the path to the JavaScript file. "onLoadFunc" is the function to be called
@@ -43,32 +48,60 @@ function loadWebAssemblyDecoder() {
   xhr.send(null)
 }
 
+function loadWebAssemblyEncoder() {
+  dracoEncoderType['wasmBinaryFile'] = 'draco_encoder.wasm';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', encoderPath + 'draco_encoder.wasm', true);
+  xhr.responseType = 'arraybuffer';
+
+  xhr.onload = function() {
+    // For WebAssembly the object passed into DracoModule() must contain a
+    // property with the name of wasmBinary and the value must be an
+    // ArrayBuffer containing the contents of the .wasm file.
+    dracoEncoderType['wasmBinary'] = xhr.response;
+    createEncoderModule();
+  };
+
+  xhr.send(null)
+}
+
 function createDecoderModule() {
   // draco_decoder.js or draco_wasm_wrapper.js must be loaded before
   // DracoModule is created.
   DracoDecoderModule({}).then((module) => {
     decoderModule = module;
+    // console.log('DracoDecoderModule: true');
   });
-  // console.log('DracoModule: true');
+}
+
+function createEncoderModule() {
+  DracoEncoderModule({}).then((module) => {
+    encoderModule = module;
+    // console.log('DracoEncoderModule: true');
+  });
 }
 
 // This function will test if the browser has support for WebAssembly. If it
-// does it will download the WebAssembly Draco decoder, if not it will download
-// the asmjs Draco decoder.
-function loadDracoDecoder() {
+// does it will download the WebAssembly Draco decoder and encoder, if not it
+// will download the asmjs version of them.
+function loadDraco() {
   if (typeof WebAssembly !== 'object') {
     // No WebAssembly support. DracoModule must be called with no parameters
     // or an empty object to create a JavaScript decoder.
     loadJavaScriptFile(decoderPath + 'draco_decoder.js', createDecoderModule);
+    loadJavaScriptFile(encoderPath + 'draco_encoder.js', createEncoderModule);
   } else {
     loadJavaScriptFile(decoderPath + 'draco_wasm_wrapper.js',
                        loadWebAssemblyDecoder);
+    loadJavaScriptFile(encoderPath + 'draco_encoder_wrapper.js',
+                       loadWebAssemblyEncoder);
   }
 }
 
 export default {
   async mounted() {
-    loadDracoDecoder();
+    loadDraco();
   },
   methods: {
     async readFile() {
@@ -76,7 +109,7 @@ export default {
         .registerExtensions([DracoMeshCompression])
         .registerDependencies({
           'draco3d.decoder': decoderModule,
-          // 'draco3d.encoder': encoderModule,
+          'draco3d.encoder': encoderModule,
         });
 
       // Read from disk
