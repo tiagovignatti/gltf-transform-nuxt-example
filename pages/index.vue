@@ -1,26 +1,40 @@
 <template>
   <div class="container">
     <div>
-      <Logo />
+      <model-viewer
+        v-if="hasModel"
+        :src="modelUrl"
+        auto-rotate=true
+        camera-controls
+      />
+      <a
+        v-if="hasModel"
+        @click="handleSaveFile"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="button--green"
+      >
+        Download glb
+      </a>
       <h1 class="title">
         gltf-transform-nuxt-example
       </h1>
       <div class="links">
         <a
-          @click="readFile"
+          @click="decodeStuff"
           target="_blank"
           rel="noopener noreferrer"
           class="button--grey"
         >
-          Read glb draco'ed file
+          Decode Stuff from disk
         </a>
         <a
-          @click="doSomeStuff"
+          @click="encodeStuff"
           target="_blank"
           rel="noopener noreferrer"
           class="button--green"
         >
-          Do some stuff
+          Encode Stuff to Viewer
         </a>
       </div>
     </div>
@@ -68,4 +82,12 @@
 .links {
   padding-top: 15px;
 }
+
+model-viewer {
+  margin-left: auto;
+  margin-right: auto;
+  width: 80%;
+  height: 512px;
+}
+
 </style>

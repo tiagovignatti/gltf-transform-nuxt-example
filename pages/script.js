@@ -1,5 +1,5 @@
-import { Document, WebIO } from '@gltf-transform/core';
-// import { dedup } from '@gltf-transform/lib';
+import '@google/model-viewer'
+import { WebIO } from '@gltf-transform/core';
 import { DracoMeshCompression } from '@gltf-transform/extensions';
 
 // Global Draco decoder.
@@ -99,12 +99,34 @@ function loadDraco() {
   }
 }
 
+function saveFile(blob, filename) {
+  if (window.navigator.msSaveOrOpenBlob) {
+    window.navigator.msSaveOrOpenBlob(blob, filename);
+  } else {
+    const a = document.createElement('a');
+    document.body.appendChild(a);
+    const url = window.URL.createObjectURL(blob);
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 0)
+  }
+}
+
 export default {
+  data: () => ({
+    hasModel: false,
+    modelUrl: '',
+    modelBlob: null,
+  }),
   async mounted() {
     loadDraco();
   },
   methods: {
-    async readFile() {
+    async decodeStuff() {
       const io = new WebIO({credentials: 'include'})
         .registerExtensions([DracoMeshCompression])
         .registerDependencies({
@@ -113,18 +135,40 @@ export default {
         });
 
       // Read from disk
-      const doc = await io.read('modelDraco.glb');  // → Document
+      const doc = await io.read('model-compressed.glb');  // → Document
 
       const extensionsUsed = doc.getRoot().listExtensionsUsed()
         .map((e) => e.extensionName)
         .sort();
       console.log(extensionsUsed);
-
-      // Write to a buffer
-      // const arrayBuffer = io.writeBinary(doc); // → ArrayBuffer
     },
-    async doSomeStuff() {
-      // const doc = await new WebIO().read('https://dev-cdn.vrify.com/3d-assets/e49fb37e-ab48-480c-bbad-7eef3cb21e29.glb');
+    handleSaveFile(blob, filename) {
+      saveFile(this.modelBlob, 'saved-compressed.glb')
+    },
+    async encodeStuff() {
+      const io = new WebIO({credentials: 'include'})
+        .registerExtensions([DracoMeshCompression])
+        .registerDependencies({
+          'draco3d.decoder': decoderModule,
+          'draco3d.encoder': encoderModule,
+        });
+
+      // Read from disk
+      const doc = await io.read('model-not-compressed.glb');  // → Document
+      doc.createExtension(DracoMeshCompression).setRequired(true);
+      const extensionsUsed = doc.getRoot().listExtensionsUsed()
+        .map((e) => e.extensionName)
+        .sort();
+      console.log(extensionsUsed);
+
+      const arrayBuffer = io.writeBinary(doc);
+
+      var binaryData = [];
+      binaryData.push(arrayBuffer);
+      this.modelBlob = new Blob(binaryData, {type: "model/gltf-binary"})
+      this.modelUrl = URL.createObjectURL(this.modelBlob)
+
+      this.hasModel = true;
 
       // Removes duplicate Accessor and Texture properties.
       // https://github.com/donmccurdy/glTF-Transform/blob/main/packages/lib/src/dedup.ts

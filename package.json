@@ -11,6 +11,7 @@
   "dependencies": {
     "@gltf-transform/core": "^0.9.3",
     "@gltf-transform/extensions": "^0.9.3",
+    "@google/model-viewer": "^1.6.0",
     "core-js": "^3.8.3",
     "nuxt": "^2.14.12"
   },
